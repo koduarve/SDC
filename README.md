@@ -1,1 +1,1 @@
-# SDC
+# SDC contract
