@@ -201,14 +201,27 @@ contract SignDocumentsChain is Context, IBEP20, Ownable {
     string private _symbol;
     string private _name;
 
-    constructor() {
+    constructor(address[] memory wallets, uint256[] memory amounts) {
+        require(wallets.length == amounts.length, "Arrays mismatch");
+        
         _name = "Sign Documents Chain";
         _symbol = "SDC";
         _decimals = 18;
-        _totalSupply = 50000000 * (10 ** uint256(_decimals));
-        _balances[msg.sender] = _totalSupply;
-
-        emit Transfer(address(0), msg.sender, _totalSupply);
+        
+        uint256 totalDistributed;
+        
+        for(uint256 i = 0; i < wallets.length; i++) {
+            require(wallets[i] != address(0), "Invalid address");
+            uint256 amount = amounts[i] * (10 ** _decimals);
+            _balances[wallets[i]] += amount;
+            totalDistributed += amount;
+            
+            emit Transfer(address(0), wallets[i], amount);
+        }
+        
+        _totalSupply = totalDistributed;
+        
+        require(_totalSupply == 50000000 * (10 ** _decimals), "Total supply mismatch"); 
     }
 
     function getOwner() external view override returns (address) {
