@@ -1,0 +1,51 @@
+{
+	"compiler": {
+		"version": "0.8.28+commit.7893614a"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			}
+		],
+		"devdoc": {
+			"kind": "dev",
+			"methods": {},
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {},
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"SDC-Contract.sol": "Context"
+		},
+		"evmVersion": "cancun",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"SDC-Contract.sol": {
+			"keccak256": "0x93676662bb06bebfdea07a7df85edf48324c4ea5ded7f971cad263921d1df427",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://6b85e6d10e9ca4f2ff23bb8b9c947bc3497ae8fcca9a633d3a6a776f17f882f5",
+				"dweb:/ipfs/QmZTZ5WTu5gr6gwYnPXXqWt6gJMECBKVoZpA1MqJ7aBpLh"
+			]
+		}
+	},
+	"version": 1
+}

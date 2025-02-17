@@ -1,0 +1,1039 @@
+{
+	"compiler": {
+		"version": "0.8.28+commit.7893614a"
+	},
+	"language": "Solidity",
+	"output": {
+		"abi": [
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "_weth",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_token",
+						"type": "address"
+					},
+					{
+						"internalType": "address",
+						"name": "_uniswapV2Router02",
+						"type": "address"
+					},
+					{
+						"components": [
+							{
+								"internalType": "uint256",
+								"name": "tokenDeposit",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "hardCap",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "softCap",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "max",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "min",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint112",
+								"name": "start",
+								"type": "uint112"
+							},
+							{
+								"internalType": "uint112",
+								"name": "end",
+								"type": "uint112"
+							},
+							{
+								"internalType": "uint32",
+								"name": "liquidityBps",
+								"type": "uint32"
+							}
+						],
+						"internalType": "struct Presale.PresaleOptions",
+						"name": "_options",
+						"type": "tuple"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "constructor"
+			},
+			{
+				"inputs": [],
+				"name": "FailedCall",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "HardCapExceed",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint256",
+						"name": "balance",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "needed",
+						"type": "uint256"
+					}
+				],
+				"name": "InsufficientBalance",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidCapValue",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidInitializationParameters",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidLimitValue",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidLiquidityValue",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "uint8",
+						"name": "currentState",
+						"type": "uint8"
+					}
+				],
+				"name": "InvalidState",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "InvalidTimestampValue",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "LiquificationFailed",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "NotClaimable",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "NotInPurchasePeriod",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "NotRefundable",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "owner",
+						"type": "address"
+					}
+				],
+				"name": "OwnableInvalidOwner",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "account",
+						"type": "address"
+					}
+				],
+				"name": "OwnableUnauthorizedAccount",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "PurchaseBelowMinimum",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "PurchaseLimitExceed",
+				"type": "error"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "token",
+						"type": "address"
+					}
+				],
+				"name": "SafeERC20FailedOperation",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "SoftCapNotReached",
+				"type": "error"
+			},
+			{
+				"inputs": [],
+				"name": "Unauthorized",
+				"type": "error"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "creator",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					}
+				],
+				"name": "Cancel",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "creator",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					}
+				],
+				"name": "Deposit",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "creator",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					}
+				],
+				"name": "Finalized",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "previousOwner",
+						"type": "address"
+					},
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "OwnershipTransferred",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "beneficiary",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "contribution",
+						"type": "uint256"
+					}
+				],
+				"name": "Purchase",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "beneficiary",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					}
+				],
+				"name": "Refund",
+				"type": "event"
+			},
+			{
+				"anonymous": false,
+				"inputs": [
+					{
+						"indexed": true,
+						"internalType": "address",
+						"name": "beneficiary",
+						"type": "address"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "amount",
+						"type": "uint256"
+					},
+					{
+						"indexed": false,
+						"internalType": "uint256",
+						"name": "timestamp",
+						"type": "uint256"
+					}
+				],
+				"name": "TokenClaim",
+				"type": "event"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address[]",
+						"name": "accounts",
+						"type": "address[]"
+					}
+				],
+				"name": "addToWhitelist",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "cancel",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "claim",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"name": "contributions",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "deposit",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "finalize",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "isWhitelistEnabled",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "owner",
+				"outputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "pool",
+				"outputs": [
+					{
+						"internalType": "contract IERC20",
+						"name": "token",
+						"type": "address"
+					},
+					{
+						"internalType": "contract IUniswapV2Router02",
+						"name": "uniswapV2Router02",
+						"type": "address"
+					},
+					{
+						"internalType": "uint256",
+						"name": "tokenBalance",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "tokensClaimable",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "tokensLiquidity",
+						"type": "uint256"
+					},
+					{
+						"internalType": "uint256",
+						"name": "weiRaised",
+						"type": "uint256"
+					},
+					{
+						"internalType": "address",
+						"name": "weth",
+						"type": "address"
+					},
+					{
+						"internalType": "uint8",
+						"name": "state",
+						"type": "uint8"
+					},
+					{
+						"components": [
+							{
+								"internalType": "uint256",
+								"name": "tokenDeposit",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "hardCap",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "softCap",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "max",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint256",
+								"name": "min",
+								"type": "uint256"
+							},
+							{
+								"internalType": "uint112",
+								"name": "start",
+								"type": "uint112"
+							},
+							{
+								"internalType": "uint112",
+								"name": "end",
+								"type": "uint112"
+							},
+							{
+								"internalType": "uint32",
+								"name": "liquidityBps",
+								"type": "uint32"
+							}
+						],
+						"internalType": "struct Presale.PresaleOptions",
+						"name": "options",
+						"type": "tuple"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "refund",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address[]",
+						"name": "accounts",
+						"type": "address[]"
+					}
+				],
+				"name": "removeFromWhitelist",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [],
+				"name": "renounceOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "bool",
+						"name": "_enabled",
+						"type": "bool"
+					}
+				],
+				"name": "setWhitelistEnabled",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "newOwner",
+						"type": "address"
+					}
+				],
+				"name": "transferOwnership",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "contributor",
+						"type": "address"
+					}
+				],
+				"name": "userTokens",
+				"outputs": [
+					{
+						"internalType": "uint256",
+						"name": "",
+						"type": "uint256"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"inputs": [
+					{
+						"internalType": "address",
+						"name": "",
+						"type": "address"
+					}
+				],
+				"name": "whitelist",
+				"outputs": [
+					{
+						"internalType": "bool",
+						"name": "",
+						"type": "bool"
+					}
+				],
+				"stateMutability": "view",
+				"type": "function"
+			},
+			{
+				"stateMutability": "payable",
+				"type": "receive"
+			}
+		],
+		"devdoc": {
+			"errors": {
+				"FailedCall()": [
+					{
+						"details": "A call to an address target failed. The target may have reverted."
+					}
+				],
+				"HardCapExceed()": [
+					{
+						"details": "Emitted when a purchase attempt exceeds the presale's hard cap."
+					}
+				],
+				"InsufficientBalance(uint256,uint256)": [
+					{
+						"details": "The ETH balance of the account is not enough to perform the operation."
+					}
+				],
+				"InvalidCapValue()": [
+					{
+						"details": "Emitted when the pool validation parameters provided to the contract are invalid."
+					}
+				],
+				"InvalidInitializationParameters()": [
+					{
+						"details": "Emitted when the initialization parameters provided to the contract are invalid."
+					}
+				],
+				"InvalidLimitValue()": [
+					{
+						"details": "Emitted when the pool validation parameters provided to the contract are invalid."
+					}
+				],
+				"InvalidLiquidityValue()": [
+					{
+						"details": "Emitted when the pool validation parameters provided to the contract are invalid."
+					}
+				],
+				"InvalidState(uint8)": [
+					{
+						"details": "Emitted when an action is performed in an invalid state.",
+						"params": {
+							"currentState": "The current state of the contract."
+						}
+					}
+				],
+				"InvalidTimestampValue()": [
+					{
+						"details": "Emitted when the pool validation parameters provided to the contract are invalid."
+					}
+				],
+				"LiquificationFailed()": [
+					{
+						"details": "Emitted when the process of adding liquidity to a liquidity pool fails."
+					}
+				],
+				"NotClaimable()": [
+					{
+						"details": "Emitted when user with no contribution attempts to claim tokens."
+					}
+				],
+				"NotInPurchasePeriod()": [
+					{
+						"details": "Emitted when a purchase or refund attempt is made outside the presale period."
+					}
+				],
+				"NotRefundable()": [
+					{
+						"details": "Emitted when a refund is requested under conditions that do not permit refunds."
+					}
+				],
+				"OwnableInvalidOwner(address)": [
+					{
+						"details": "The owner is not a valid owner account. (eg. `address(0)`)"
+					}
+				],
+				"OwnableUnauthorizedAccount(address)": [
+					{
+						"details": "The caller account is not authorized to perform an operation."
+					}
+				],
+				"PurchaseBelowMinimum()": [
+					{
+						"details": "Emitted when a purchase amount is below the minimum allowed."
+					}
+				],
+				"PurchaseLimitExceed()": [
+					{
+						"details": "Emitted when a participant's purchase would exceed the maximum allowed contribution."
+					}
+				],
+				"SafeERC20FailedOperation(address)": [
+					{
+						"details": "An operation with an ERC-20 token failed."
+					}
+				],
+				"SoftCapNotReached()": [
+					{
+						"details": "Emitted when attempting to finalize a presale that has not reached its soft cap."
+					}
+				],
+				"Unauthorized()": [
+					{
+						"details": "Emitted when an unauthorized address attempts an action requiring specific permissions."
+					}
+				]
+			},
+			"events": {
+				"Cancel(address,uint256)": {
+					"details": "Emitted when the presale is cancelled by the contract owner. A cancellation may allow participants to claim refunds for their contributions.",
+					"params": {
+						"creator": "Address of the contract owner who cancelled the presale.",
+						"timestamp": "Block timestamp when the cancellation occurred."
+					}
+				},
+				"Deposit(address,uint256,uint256)": {
+					"details": "Emitted when the presale contract owner deposits tokens for sale. This is usually done before the presale starts to ensure tokens are available for purchase.",
+					"params": {
+						"amount": "Amount of tokens deposited.",
+						"creator": "Address of the contract owner who performs the deposit.",
+						"timestamp": "Block timestamp when the deposit occurred."
+					}
+				},
+				"Finalized(address,uint256,uint256)": {
+					"details": "Emitted when the presale is successfully finalized. Finalization may involve distributing tokens, transferring raised funds to a designated wallet, and/or enabling token claim functionality.",
+					"params": {
+						"amount": "Total amount of ETH raised in the presale.",
+						"creator": "Address of the contract owner who finalized the presale.",
+						"timestamp": "Block timestamp when the finalization occurred."
+					}
+				},
+				"Purchase(address,uint256)": {
+					"details": "Emitted for each purchase made during the presale. Tracks the buyer, the amount of ETH contributed, and the amount of tokens purchased.",
+					"params": {
+						"beneficiary": "Address of the participant who made the purchase.",
+						"contribution": "Amount of ETH contributed by the participant."
+					}
+				},
+				"Refund(address,uint256,uint256)": {
+					"details": "Emitted when a participant successfully claims a refund. This is typically allowed when the presale is cancelled or does not meet its funding goals.",
+					"params": {
+						"amount": "Amount of wei refunded.",
+						"beneficiary": "Address of the participant receiving the refund.",
+						"timestamp": "Block timestamp when the refund occurred."
+					}
+				},
+				"TokenClaim(address,uint256,uint256)": {
+					"details": "Emitted when participants claim their purchased tokens after the presale is finalized. ",
+					"params": {
+						"amount": "Amount of tokens claimed.",
+						"beneficiary": "Address of the participant claiming tokens.",
+						"timestamp": "Block timestamp when the claim occurred."
+					}
+				}
+			},
+			"kind": "dev",
+			"methods": {
+				"constructor": {
+					"params": {
+						"_options": "Параметры пресейла (PresaleOptions).",
+						"_token": "Адрес токена, который продаём.",
+						"_uniswapV2Router02": "Адрес роутера (PancakeSwap/Uniswap).",
+						"_weth": "Адрес WBNB в сети BSC (или WETH, если это другая EVM-сеть)."
+					}
+				},
+				"deposit()": {
+					"returns": {
+						"_0": "Количество внесённых токенов."
+					}
+				},
+				"owner()": {
+					"details": "Returns the address of the current owner."
+				},
+				"renounceOwnership()": {
+					"details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner."
+				},
+				"transferOwnership(address)": {
+					"details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+				},
+				"userTokens(address)": {
+					"details": "Считаем, сколько токенов причитается конкретному участнику (пропорционально вкладу)."
+				}
+			},
+			"title": "Presale contract",
+			"version": 1
+		},
+		"userdoc": {
+			"kind": "user",
+			"methods": {
+				"addToWhitelist(address[])": {
+					"notice": "Добавляет адреса в whitelist."
+				},
+				"cancel()": {
+					"notice": "Владелец может отменить пресейл (если он ещё не завершён).         Тогда участники смогут вызвать refund() и вернуть BNB."
+				},
+				"claim()": {
+					"notice": "Позволяет покупателям забрать свои токены после успешного завершения пресейла."
+				},
+				"contributions(address)": {
+					"notice": "Учет вкладов (адрес -> внесённые BNB)"
+				},
+				"deposit()": {
+					"notice": "Владелец вносит нужное количество токенов для пресейла и ликвидности.         До вызова этой функции пресейл недоступен участникам."
+				},
+				"finalize()": {
+					"notice": "Завершает пресейл, если он успешен (достигнут softCap).         Добавляет ликвидность, переводит остатки владельцу, открывает клейм для участников."
+				},
+				"isWhitelistEnabled()": {
+					"notice": "2. Механика whitelist (для снижения рисков фронтраннинга)"
+				},
+				"pool()": {
+					"notice": "Храним все данные в одной структуре"
+				},
+				"refund()": {
+					"notice": "Возврат средств участникам, если пресейл отменён или не собрал softCap."
+				},
+				"removeFromWhitelist(address[])": {
+					"notice": "Удаляет адреса из whitelist."
+				},
+				"setWhitelistEnabled(bool)": {
+					"notice": "Включает или отключает механизм whitelist."
+				}
+			},
+			"notice": "Create and manage a presale of an ERC20 token",
+			"version": 1
+		}
+	},
+	"settings": {
+		"compilationTarget": {
+			"SDC-Presale.sol": "Presale"
+		},
+		"evmVersion": "cancun",
+		"libraries": {},
+		"metadata": {
+			"bytecodeHash": "ipfs"
+		},
+		"optimizer": {
+			"enabled": false,
+			"runs": 200
+		},
+		"remappings": []
+	},
+	"sources": {
+		"@openzeppelin/contracts/access/Ownable.sol": {
+			"keccak256": "0xff6d0bb2e285473e5311d9d3caacb525ae3538a80758c10649a4d61029b017bb",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://8ed324d3920bb545059d66ab97d43e43ee85fd3bd52e03e401f020afb0b120f6",
+				"dweb:/ipfs/QmfEckWLmZkDDcoWrkEvMWhms66xwTLff9DDhegYpvHo1a"
+			]
+		},
+		"@openzeppelin/contracts/interfaces/IERC1363.sol": {
+			"keccak256": "0x9b6b3e7803bc5f2f8cd7ad57db8ac1def61a9930a5a3107df4882e028a9605d7",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://da62d6be1f5c6edf577f0cb45666a8aa9c2086a4bac87d95d65f02e2f4c36a4b",
+				"dweb:/ipfs/QmNkpvBpoCMvX8JwAFNSc5XxJ2q5BXJpL5L1txb4QkqVFF"
+			]
+		},
+		"@openzeppelin/contracts/interfaces/IERC165.sol": {
+			"keccak256": "0xde7e9fd9aee8d4f40772f96bb3b58836cbc6dfc0227014a061947f8821ea9724",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://11fea9f8bc98949ac6709f0c1699db7430d2948137aa94d5a9e95a91f61a710a",
+				"dweb:/ipfs/QmQdfRXxQjwP6yn3DVo1GHPpriKNcFghSPi94Z1oKEFUNS"
+			]
+		},
+		"@openzeppelin/contracts/interfaces/IERC20.sol": {
+			"keccak256": "0xce41876e78d1badc0512229b4d14e4daf83bc1003d7f83978d18e0e56f965b9c",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://a2608291cb038b388d80b79a06b6118a42f7894ff67b7da10ec0dbbf5b2973ba",
+				"dweb:/ipfs/QmWohqcBLbcxmA4eGPhZDXe5RYMMEEpFq22nfkaUMvTfw1"
+			]
+		},
+		"@openzeppelin/contracts/security/ReentrancyGuard.sol": {
+			"keccak256": "0xa535a5df777d44e945dd24aa43a11e44b024140fc340ad0dfe42acf4002aade1",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://41319e7f621f2dc3733511332c4fd032f8e32ad2aa7fd6f665c19741d9941a34",
+				"dweb:/ipfs/QmcYR3bd862GD1Bc7jwrU9bGxrhUu5na1oP964bDCu2id1"
+			]
+		},
+		"@openzeppelin/contracts/token/ERC20/IERC20.sol": {
+			"keccak256": "0xe06a3f08a987af6ad2e1c1e774405d4fe08f1694b67517438b467cecf0da0ef7",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://df6f0c459663c9858b6cba2cda1d14a7d05a985bed6d2de72bd8e78c25ee79db",
+				"dweb:/ipfs/QmeTTxZ7qVk9rjEv2R4CpCwdf8UMCcRqDNMvzNxHc3Fnn9"
+			]
+		},
+		"@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol": {
+			"keccak256": "0x4ea01544758fd2c7045961904686bfe232d2220a04ecaa2d6b08dac17827febf",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://fabe6bef5167ae741dd8c22d7f81d3f9120bd61b290762a2e8f176712567d329",
+				"dweb:/ipfs/QmSnEitJ6xmf1SSAUeZozD7Gx7h8bNnX3a1ZBzqeivsvVg"
+			]
+		},
+		"@openzeppelin/contracts/utils/Address.sol": {
+			"keccak256": "0xaaa1d17c1129b127a4a401db2fbd72960e2671474be3d08cae71ccdc42f7624c",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://cb2f27cd3952aa667e198fba0d9b7bcec52fbb12c16f013c25fe6fb52b29cc0e",
+				"dweb:/ipfs/QmeuohBFoeyDPZA9JNCTEDz3VBfBD4EABWuWXVhHAuEpKR"
+			]
+		},
+		"@openzeppelin/contracts/utils/Context.sol": {
+			"keccak256": "0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://6a708e8a5bdb1011c2c381c9a5cfd8a9a956d7d0a9dc1bd8bcdaf52f76ef2f12",
+				"dweb:/ipfs/Qmax9WHBnVsZP46ZxEMNRQpLQnrdE4dK8LehML1Py8FowF"
+			]
+		},
+		"@openzeppelin/contracts/utils/Errors.sol": {
+			"keccak256": "0x6afa713bfd42cf0f7656efa91201007ac465e42049d7de1d50753a373648c123",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://ba1d02f4847670a1b83dec9f7d37f0b0418d6043447b69f3a29a5f9efc547fcf",
+				"dweb:/ipfs/QmQ7iH2keLNUKgq2xSWcRmuBE5eZ3F5whYAkAGzCNNoEWB"
+			]
+		},
+		"@openzeppelin/contracts/utils/introspection/IERC165.sol": {
+			"keccak256": "0x79796192ec90263f21b464d5bc90b777a525971d3de8232be80d9c4f9fb353b8",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://f6fda447a62815e8064f47eff0dd1cf58d9207ad69b5d32280f8d7ed1d1e4621",
+				"dweb:/ipfs/QmfDRc7pxfaXB2Dh9np5Uf29Na3pQ7tafRS684wd3GLjVL"
+			]
+		},
+		"@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router01.sol": {
+			"keccak256": "0x4cc957ba3709ab0cef11cae6a983fe33a931d5c0aeb0b9e3129b9a5799b37fe8",
+			"license": "UNLICENSED",
+			"urls": [
+				"bzz-raw://74305485aace6fb5aa13b699f2edcda13a401684ec78729fabadfab447ec3494",
+				"dweb:/ipfs/QmdF1zEuHTskcYYrrCoaRo7cC5TDEJM1wPFVSXigyBmJ3j"
+			]
+		},
+		"@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol": {
+			"keccak256": "0x2265bf397a975ed4e07bb22484fe9c078df3d5bb0a9e6c6e3fff07ee3e87cbdd",
+			"license": "UNLICENSED",
+			"urls": [
+				"bzz-raw://86a19560c1441a442c6998059ada03a67ab05997da6cc95a8ac31c55d1133e20",
+				"dweb:/ipfs/QmTHjatmZ8sCpF8pTy9txZtCqDnd1xx3juog9G5RxUoPwF"
+			]
+		},
+		"SDC-Presale.sol": {
+			"keccak256": "0x856c8790ebcc10e1de10ce211c9a03093a4b68d85d39411e31f2c1fbff03e606",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://c4254792b4970089f8d28675a203ff1d8a24f99ebf2b8c3136a9b31b1c487b8c",
+				"dweb:/ipfs/QmNm2YFFhMRXe8qspk6sLLa79UbneDwkETpHhEt5apbnBf"
+			]
+		},
+		"interfaces/IPresale.sol": {
+			"keccak256": "0xe7da09f138555161982095b2687a07e5d6d8232329efafc4c4d8dc2315f1483e",
+			"license": "MIT",
+			"urls": [
+				"bzz-raw://20121344a1ae44e81ab9a2669d9d1b80cbde089128c51dc48a9fd77c30d7fc21",
+				"dweb:/ipfs/QmXs8tTWG1gEnWUjNksPxuzK2tTcYe2oqapjHu1hDL8Nxs"
+			]
+		}
+	},
+	"version": 1
+}

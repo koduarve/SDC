@@ -1,0 +1,1838 @@
+{
+	"id": "19340acd889934ebc40da3279d0c2e1f",
+	"_format": "hh-sol-build-info-1",
+	"solcVersion": "0.8.28",
+	"solcLongVersion": "0.8.28+commit.7893614a",
+	"input": {
+		"language": "Solidity",
+		"sources": {
+			"interfaces/IPresale.sol": {
+				"content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.28;\n\n/**\n * This interface outlines the functions related to managing and interacting\n * with presale contracts. It includes capabilities such as depositing funds,\n * finalizing the presale, canceling the presale, claiming tokens, and refunding\n * contributions. Implementing contracts should provide the logic for these\n * operations in the context of a presale event.\n */\ninterface IPresale {\n    \n    /**\n     * @dev Emitted when an unauthorized address attempts an action requiring specific permissions.\n     */\n    error Unauthorized();\n\n    /**\n     * @dev Emitted when an action is performed in an invalid state.\n     * @param currentState The current state of the contract.\n     */\n    error InvalidState(uint8 currentState);\n\n    /**\n     * @dev Emitted when attempting to finalize a presale that has not reached its soft cap.\n     */\n    error SoftCapNotReached();\n\n    /**\n     * @dev Emitted when a purchase attempt exceeds the presale's hard cap.\n     */\n    error HardCapExceed();\n\n    /**\n     * @dev Emitted when user with no contribution attempts to claim tokens.\n     */\n    error NotClaimable();\n\n    /**\n     * @dev Emitted when a purchase or refund attempt is made outside the presale period.\n     */\n    error NotInPurchasePeriod();\n\n    /**\n     * @dev Emitted when a purchase amount is below the minimum allowed.\n     */\n    error PurchaseBelowMinimum();\n\n    /**\n     * @dev Emitted when a participant's purchase would exceed the maximum allowed contribution.\n     */\n    error PurchaseLimitExceed();\n\n    /**\n     * @dev Emitted when a refund is requested under conditions that do not permit refunds.\n     */\n    error NotRefundable();\n\n    /**\n     * @dev Emitted when the process of adding liquidity to a liquidity pool fails.\n     */\n    error LiquificationFailed();\n\n    /**\n     * @dev Emitted when the initialization parameters provided to the contract are invalid.\n     */\n    error InvalidInitializationParameters();\n\n    /**\n     * @dev Emitted when the pool validation parameters provided to the contract are invalid.\n     */\n    error InvalidCapValue();\n\n    /**\n     * @dev Emitted when the pool validation parameters provided to the contract are invalid.\n     */\n    error InvalidLimitValue();\n\n    /**\n     * @dev Emitted when the pool validation parameters provided to the contract are invalid.\n     */\n    error InvalidLiquidityValue();\n\n\n    /**\n     * @dev Emitted when the pool validation parameters provided to the contract are invalid.\n     */\n    error InvalidTimestampValue();\n\n    /**\n     * @dev Emitted when the presale contract owner deposits tokens for sale.\n     * This is usually done before the presale starts to ensure tokens are available for purchase.\n     * @param creator Address of the contract owner who performs the deposit.\n     * @param amount Amount of tokens deposited.\n     * @param timestamp Block timestamp when the deposit occurred.\n     */\n    event Deposit(address indexed creator, uint256 amount, uint256 timestamp);\n\n    /**\n     * @dev Emitted for each purchase made during the presale. Tracks the buyer, the amount of ETH contributed,\n     * and the amount of tokens purchased.\n     * @param beneficiary Address of the participant who made the purchase.\n     * @param contribution Amount of ETH contributed by the participant.\n     */\n    event Purchase(address indexed beneficiary, uint256 contribution);\n\n    /**\n     * @dev Emitted when the presale is successfully finalized. Finalization may involve distributing tokens,\n     * transferring raised funds to a designated wallet, and/or enabling token claim functionality.\n     * @param creator Address of the contract owner who finalized the presale.\n     * @param amount Total amount of ETH raised in the presale.\n     * @param timestamp Block timestamp when the finalization occurred.\n     */\n    event Finalized(address indexed creator, uint256 amount, uint256 timestamp);\n\n    /**\n     * @dev Emitted when a participant successfully claims a refund. This is typically allowed when the presale\n     * is cancelled or does not meet its funding goals.\n     * @param beneficiary Address of the participant receiving the refund.\n     * @param amount Amount of wei refunded.\n     * @param timestamp Block timestamp when the refund occurred.\n     */\n    event Refund(address indexed beneficiary, uint256 amount, uint256 timestamp);\n\n    /**\n     * @dev Emitted when participants claim their purchased tokens after the presale is finalized. \n     * @param beneficiary Address of the participant claiming tokens.\n     * @param amount Amount of tokens claimed.\n     * @param timestamp Block timestamp when the claim occurred.\n     */\n    event TokenClaim(address indexed beneficiary, uint256 amount, uint256 timestamp);\n\n    /**\n     * @dev Emitted when the presale is cancelled by the contract owner. A cancellation may allow participants\n     * to claim refunds for their contributions.\n     * @param creator Address of the contract owner who cancelled the presale.\n     * @param timestamp Block timestamp when the cancellation occurred.\n     */\n    event Cancel(address indexed creator, uint256 timestamp);\n\n    /**\n     * @dev Allows for the deposit of presale tokens by the owner.\n     * This function is intended to be called by the presale contract owner to\n     * deposit the tokens that are to be sold during the presale.\n     * \n     * @return The amount of tokens deposited for the presale.\n     */\n    function deposit() external returns (uint256);\n\n    /**\n     * @dev Finalizes the presale, allowing for the distribution of tokens to\n     * participants and the withdrawal of funds raised to the beneficiary. This\n     * function is typically called after the presale ends, assuming it meets\n     * any predefined criteria such as minimum funding goals.\n     * \n     * @return A boolean value indicating whether the presale was successfully\n     * finalized.\n     */\n    function finalize() external returns (bool);\n\n    /**\n     * @dev Cancels the presale and enables the refund process for participants.\n     * This function can be used in scenarios where the presale does not meet\n     * its goals or if the organizer decides to cancel the event for any reason.\n     * \n     * @return A boolean value indicating whether the presale was successfully\n     * cancelled.\n     */\n    function cancel() external returns (bool);\n\n    /**\n     * @dev Allows participants to claim their purchased tokens after the presale\n     * is finalized. Participants call this function to receive the tokens they\n     * are entitled to.\n     * \n     * @return The amount of tokens claimed by the caller.\n     */\n    function claim() external returns (uint256);\n\n    /**\n     * @dev Enables participants to request a refund of their contribution if the\n     * presale is cancelled or if they are otherwise eligible for a refund\n     * according to the presale's terms.\n     * \n     * @return The amount of funds refunded to the caller.\n     */\n    function refund() external returns (uint256);\n}"
+			}
+		},
+		"settings": {
+			"optimizer": {
+				"enabled": false,
+				"runs": 200
+			},
+			"outputSelection": {
+				"*": {
+					"": [
+						"ast"
+					],
+					"*": [
+						"abi",
+						"metadata",
+						"devdoc",
+						"userdoc",
+						"storageLayout",
+						"evm.legacyAssembly",
+						"evm.bytecode",
+						"evm.deployedBytecode",
+						"evm.methodIdentifiers",
+						"evm.gasEstimates",
+						"evm.assembly"
+					]
+				}
+			},
+			"remappings": []
+		}
+	},
+	"output": {
+		"contracts": {
+			"interfaces/IPresale.sol": {
+				"IPresale": {
+					"abi": [
+						{
+							"inputs": [],
+							"name": "HardCapExceed",
+							"type": "error"
+						},
+						{
+							"inputs": [],
+							"name": "InvalidCapValue",
+							"type": "error"
+						},
+						{
+							"inputs": [],
+							"name": "InvalidInitializationParameters",
+							"type": "error"
+						},
+						{
+							"inputs": [],
+							"name": "InvalidLimitValue",
+							"type": "error"
+						},
+						{
+							"inputs": [],
+							"name": "InvalidLiquidityValue",
+							"type": "error"
+						},
+						{
+							"inputs": [
+								{
+									"internalType": "uint8",
+									"name": "currentState",
+									"type": "uint8"
+								}
+							],
+							"name": "InvalidState",
+							"type": "error"
+						},
+						{
+							"inputs": [],
+							"name": "InvalidTimestampValue",
+							"type": "error"
+						},
+						{
+							"inputs": [],
+							"name": "LiquificationFailed",
+							"type": "error"
+						},
+						{
+							"inputs": [],
+							"name": "NotClaimable",
+							"type": "error"
+						},
+						{
+							"inputs": [],
+							"name": "NotInPurchasePeriod",
+							"type": "error"
+						},
+						{
+							"inputs": [],
+							"name": "NotRefundable",
+							"type": "error"
+						},
+						{
+							"inputs": [],
+							"name": "PurchaseBelowMinimum",
+							"type": "error"
+						},
+						{
+							"inputs": [],
+							"name": "PurchaseLimitExceed",
+							"type": "error"
+						},
+						{
+							"inputs": [],
+							"name": "SoftCapNotReached",
+							"type": "error"
+						},
+						{
+							"inputs": [],
+							"name": "Unauthorized",
+							"type": "error"
+						},
+						{
+							"anonymous": false,
+							"inputs": [
+								{
+									"indexed": true,
+									"internalType": "address",
+									"name": "creator",
+									"type": "address"
+								},
+								{
+									"indexed": false,
+									"internalType": "uint256",
+									"name": "timestamp",
+									"type": "uint256"
+								}
+							],
+							"name": "Cancel",
+							"type": "event"
+						},
+						{
+							"anonymous": false,
+							"inputs": [
+								{
+									"indexed": true,
+									"internalType": "address",
+									"name": "creator",
+									"type": "address"
+								},
+								{
+									"indexed": false,
+									"internalType": "uint256",
+									"name": "amount",
+									"type": "uint256"
+								},
+								{
+									"indexed": false,
+									"internalType": "uint256",
+									"name": "timestamp",
+									"type": "uint256"
+								}
+							],
+							"name": "Deposit",
+							"type": "event"
+						},
+						{
+							"anonymous": false,
+							"inputs": [
+								{
+									"indexed": true,
+									"internalType": "address",
+									"name": "creator",
+									"type": "address"
+								},
+								{
+									"indexed": false,
+									"internalType": "uint256",
+									"name": "amount",
+									"type": "uint256"
+								},
+								{
+									"indexed": false,
+									"internalType": "uint256",
+									"name": "timestamp",
+									"type": "uint256"
+								}
+							],
+							"name": "Finalized",
+							"type": "event"
+						},
+						{
+							"anonymous": false,
+							"inputs": [
+								{
+									"indexed": true,
+									"internalType": "address",
+									"name": "beneficiary",
+									"type": "address"
+								},
+								{
+									"indexed": false,
+									"internalType": "uint256",
+									"name": "contribution",
+									"type": "uint256"
+								}
+							],
+							"name": "Purchase",
+							"type": "event"
+						},
+						{
+							"anonymous": false,
+							"inputs": [
+								{
+									"indexed": true,
+									"internalType": "address",
+									"name": "beneficiary",
+									"type": "address"
+								},
+								{
+									"indexed": false,
+									"internalType": "uint256",
+									"name": "amount",
+									"type": "uint256"
+								},
+								{
+									"indexed": false,
+									"internalType": "uint256",
+									"name": "timestamp",
+									"type": "uint256"
+								}
+							],
+							"name": "Refund",
+							"type": "event"
+						},
+						{
+							"anonymous": false,
+							"inputs": [
+								{
+									"indexed": true,
+									"internalType": "address",
+									"name": "beneficiary",
+									"type": "address"
+								},
+								{
+									"indexed": false,
+									"internalType": "uint256",
+									"name": "amount",
+									"type": "uint256"
+								},
+								{
+									"indexed": false,
+									"internalType": "uint256",
+									"name": "timestamp",
+									"type": "uint256"
+								}
+							],
+							"name": "TokenClaim",
+							"type": "event"
+						},
+						{
+							"inputs": [],
+							"name": "cancel",
+							"outputs": [
+								{
+									"internalType": "bool",
+									"name": "",
+									"type": "bool"
+								}
+							],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [],
+							"name": "claim",
+							"outputs": [
+								{
+									"internalType": "uint256",
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [],
+							"name": "deposit",
+							"outputs": [
+								{
+									"internalType": "uint256",
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [],
+							"name": "finalize",
+							"outputs": [
+								{
+									"internalType": "bool",
+									"name": "",
+									"type": "bool"
+								}
+							],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						},
+						{
+							"inputs": [],
+							"name": "refund",
+							"outputs": [
+								{
+									"internalType": "uint256",
+									"name": "",
+									"type": "uint256"
+								}
+							],
+							"stateMutability": "nonpayable",
+							"type": "function"
+						}
+					],
+					"devdoc": {
+						"errors": {
+							"HardCapExceed()": [
+								{
+									"details": "Emitted when a purchase attempt exceeds the presale's hard cap."
+								}
+							],
+							"InvalidCapValue()": [
+								{
+									"details": "Emitted when the pool validation parameters provided to the contract are invalid."
+								}
+							],
+							"InvalidInitializationParameters()": [
+								{
+									"details": "Emitted when the initialization parameters provided to the contract are invalid."
+								}
+							],
+							"InvalidLimitValue()": [
+								{
+									"details": "Emitted when the pool validation parameters provided to the contract are invalid."
+								}
+							],
+							"InvalidLiquidityValue()": [
+								{
+									"details": "Emitted when the pool validation parameters provided to the contract are invalid."
+								}
+							],
+							"InvalidState(uint8)": [
+								{
+									"details": "Emitted when an action is performed in an invalid state.",
+									"params": {
+										"currentState": "The current state of the contract."
+									}
+								}
+							],
+							"InvalidTimestampValue()": [
+								{
+									"details": "Emitted when the pool validation parameters provided to the contract are invalid."
+								}
+							],
+							"LiquificationFailed()": [
+								{
+									"details": "Emitted when the process of adding liquidity to a liquidity pool fails."
+								}
+							],
+							"NotClaimable()": [
+								{
+									"details": "Emitted when user with no contribution attempts to claim tokens."
+								}
+							],
+							"NotInPurchasePeriod()": [
+								{
+									"details": "Emitted when a purchase or refund attempt is made outside the presale period."
+								}
+							],
+							"NotRefundable()": [
+								{
+									"details": "Emitted when a refund is requested under conditions that do not permit refunds."
+								}
+							],
+							"PurchaseBelowMinimum()": [
+								{
+									"details": "Emitted when a purchase amount is below the minimum allowed."
+								}
+							],
+							"PurchaseLimitExceed()": [
+								{
+									"details": "Emitted when a participant's purchase would exceed the maximum allowed contribution."
+								}
+							],
+							"SoftCapNotReached()": [
+								{
+									"details": "Emitted when attempting to finalize a presale that has not reached its soft cap."
+								}
+							],
+							"Unauthorized()": [
+								{
+									"details": "Emitted when an unauthorized address attempts an action requiring specific permissions."
+								}
+							]
+						},
+						"events": {
+							"Cancel(address,uint256)": {
+								"details": "Emitted when the presale is cancelled by the contract owner. A cancellation may allow participants to claim refunds for their contributions.",
+								"params": {
+									"creator": "Address of the contract owner who cancelled the presale.",
+									"timestamp": "Block timestamp when the cancellation occurred."
+								}
+							},
+							"Deposit(address,uint256,uint256)": {
+								"details": "Emitted when the presale contract owner deposits tokens for sale. This is usually done before the presale starts to ensure tokens are available for purchase.",
+								"params": {
+									"amount": "Amount of tokens deposited.",
+									"creator": "Address of the contract owner who performs the deposit.",
+									"timestamp": "Block timestamp when the deposit occurred."
+								}
+							},
+							"Finalized(address,uint256,uint256)": {
+								"details": "Emitted when the presale is successfully finalized. Finalization may involve distributing tokens, transferring raised funds to a designated wallet, and/or enabling token claim functionality.",
+								"params": {
+									"amount": "Total amount of ETH raised in the presale.",
+									"creator": "Address of the contract owner who finalized the presale.",
+									"timestamp": "Block timestamp when the finalization occurred."
+								}
+							},
+							"Purchase(address,uint256)": {
+								"details": "Emitted for each purchase made during the presale. Tracks the buyer, the amount of ETH contributed, and the amount of tokens purchased.",
+								"params": {
+									"beneficiary": "Address of the participant who made the purchase.",
+									"contribution": "Amount of ETH contributed by the participant."
+								}
+							},
+							"Refund(address,uint256,uint256)": {
+								"details": "Emitted when a participant successfully claims a refund. This is typically allowed when the presale is cancelled or does not meet its funding goals.",
+								"params": {
+									"amount": "Amount of wei refunded.",
+									"beneficiary": "Address of the participant receiving the refund.",
+									"timestamp": "Block timestamp when the refund occurred."
+								}
+							},
+							"TokenClaim(address,uint256,uint256)": {
+								"details": "Emitted when participants claim their purchased tokens after the presale is finalized. ",
+								"params": {
+									"amount": "Amount of tokens claimed.",
+									"beneficiary": "Address of the participant claiming tokens.",
+									"timestamp": "Block timestamp when the claim occurred."
+								}
+							}
+						},
+						"kind": "dev",
+						"methods": {
+							"cancel()": {
+								"details": "Cancels the presale and enables the refund process for participants. This function can be used in scenarios where the presale does not meet its goals or if the organizer decides to cancel the event for any reason. ",
+								"returns": {
+									"_0": "A boolean value indicating whether the presale was successfully cancelled."
+								}
+							},
+							"claim()": {
+								"details": "Allows participants to claim their purchased tokens after the presale is finalized. Participants call this function to receive the tokens they are entitled to. ",
+								"returns": {
+									"_0": "The amount of tokens claimed by the caller."
+								}
+							},
+							"deposit()": {
+								"details": "Allows for the deposit of presale tokens by the owner. This function is intended to be called by the presale contract owner to deposit the tokens that are to be sold during the presale. ",
+								"returns": {
+									"_0": "The amount of tokens deposited for the presale."
+								}
+							},
+							"finalize()": {
+								"details": "Finalizes the presale, allowing for the distribution of tokens to participants and the withdrawal of funds raised to the beneficiary. This function is typically called after the presale ends, assuming it meets any predefined criteria such as minimum funding goals. ",
+								"returns": {
+									"_0": "A boolean value indicating whether the presale was successfully finalized."
+								}
+							},
+							"refund()": {
+								"details": "Enables participants to request a refund of their contribution if the presale is cancelled or if they are otherwise eligible for a refund according to the presale's terms. ",
+								"returns": {
+									"_0": "The amount of funds refunded to the caller."
+								}
+							}
+						},
+						"version": 1
+					},
+					"evm": {
+						"assembly": "",
+						"bytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"deployedBytecode": {
+							"functionDebugData": {},
+							"generatedSources": [],
+							"immutableReferences": {},
+							"linkReferences": {},
+							"object": "",
+							"opcodes": "",
+							"sourceMap": ""
+						},
+						"gasEstimates": null,
+						"legacyAssembly": null,
+						"methodIdentifiers": {
+							"cancel()": "ea8a1af0",
+							"claim()": "4e71d92d",
+							"deposit()": "d0e30db0",
+							"finalize()": "4bb278f3",
+							"refund()": "590e1ae3"
+						}
+					},
+					"metadata": "{\"compiler\":{\"version\":\"0.8.28+commit.7893614a\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[],\"name\":\"HardCapExceed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidCapValue\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidInitializationParameters\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidLimitValue\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidLiquidityValue\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"uint8\",\"name\":\"currentState\",\"type\":\"uint8\"}],\"name\":\"InvalidState\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"InvalidTimestampValue\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"LiquificationFailed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotClaimable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotInPurchasePeriod\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"NotRefundable\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PurchaseBelowMinimum\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"PurchaseLimitExceed\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"SoftCapNotReached\",\"type\":\"error\"},{\"inputs\":[],\"name\":\"Unauthorized\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"creator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"}],\"name\":\"Cancel\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"creator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"}],\"name\":\"Deposit\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"creator\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"}],\"name\":\"Finalized\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"beneficiary\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"contribution\",\"type\":\"uint256\"}],\"name\":\"Purchase\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"beneficiary\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"}],\"name\":\"Refund\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"beneficiary\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"amount\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"timestamp\",\"type\":\"uint256\"}],\"name\":\"TokenClaim\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"cancel\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"claim\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"deposit\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"finalize\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"refund\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"errors\":{\"HardCapExceed()\":[{\"details\":\"Emitted when a purchase attempt exceeds the presale's hard cap.\"}],\"InvalidCapValue()\":[{\"details\":\"Emitted when the pool validation parameters provided to the contract are invalid.\"}],\"InvalidInitializationParameters()\":[{\"details\":\"Emitted when the initialization parameters provided to the contract are invalid.\"}],\"InvalidLimitValue()\":[{\"details\":\"Emitted when the pool validation parameters provided to the contract are invalid.\"}],\"InvalidLiquidityValue()\":[{\"details\":\"Emitted when the pool validation parameters provided to the contract are invalid.\"}],\"InvalidState(uint8)\":[{\"details\":\"Emitted when an action is performed in an invalid state.\",\"params\":{\"currentState\":\"The current state of the contract.\"}}],\"InvalidTimestampValue()\":[{\"details\":\"Emitted when the pool validation parameters provided to the contract are invalid.\"}],\"LiquificationFailed()\":[{\"details\":\"Emitted when the process of adding liquidity to a liquidity pool fails.\"}],\"NotClaimable()\":[{\"details\":\"Emitted when user with no contribution attempts to claim tokens.\"}],\"NotInPurchasePeriod()\":[{\"details\":\"Emitted when a purchase or refund attempt is made outside the presale period.\"}],\"NotRefundable()\":[{\"details\":\"Emitted when a refund is requested under conditions that do not permit refunds.\"}],\"PurchaseBelowMinimum()\":[{\"details\":\"Emitted when a purchase amount is below the minimum allowed.\"}],\"PurchaseLimitExceed()\":[{\"details\":\"Emitted when a participant's purchase would exceed the maximum allowed contribution.\"}],\"SoftCapNotReached()\":[{\"details\":\"Emitted when attempting to finalize a presale that has not reached its soft cap.\"}],\"Unauthorized()\":[{\"details\":\"Emitted when an unauthorized address attempts an action requiring specific permissions.\"}]},\"events\":{\"Cancel(address,uint256)\":{\"details\":\"Emitted when the presale is cancelled by the contract owner. A cancellation may allow participants to claim refunds for their contributions.\",\"params\":{\"creator\":\"Address of the contract owner who cancelled the presale.\",\"timestamp\":\"Block timestamp when the cancellation occurred.\"}},\"Deposit(address,uint256,uint256)\":{\"details\":\"Emitted when the presale contract owner deposits tokens for sale. This is usually done before the presale starts to ensure tokens are available for purchase.\",\"params\":{\"amount\":\"Amount of tokens deposited.\",\"creator\":\"Address of the contract owner who performs the deposit.\",\"timestamp\":\"Block timestamp when the deposit occurred.\"}},\"Finalized(address,uint256,uint256)\":{\"details\":\"Emitted when the presale is successfully finalized. Finalization may involve distributing tokens, transferring raised funds to a designated wallet, and/or enabling token claim functionality.\",\"params\":{\"amount\":\"Total amount of ETH raised in the presale.\",\"creator\":\"Address of the contract owner who finalized the presale.\",\"timestamp\":\"Block timestamp when the finalization occurred.\"}},\"Purchase(address,uint256)\":{\"details\":\"Emitted for each purchase made during the presale. Tracks the buyer, the amount of ETH contributed, and the amount of tokens purchased.\",\"params\":{\"beneficiary\":\"Address of the participant who made the purchase.\",\"contribution\":\"Amount of ETH contributed by the participant.\"}},\"Refund(address,uint256,uint256)\":{\"details\":\"Emitted when a participant successfully claims a refund. This is typically allowed when the presale is cancelled or does not meet its funding goals.\",\"params\":{\"amount\":\"Amount of wei refunded.\",\"beneficiary\":\"Address of the participant receiving the refund.\",\"timestamp\":\"Block timestamp when the refund occurred.\"}},\"TokenClaim(address,uint256,uint256)\":{\"details\":\"Emitted when participants claim their purchased tokens after the presale is finalized. \",\"params\":{\"amount\":\"Amount of tokens claimed.\",\"beneficiary\":\"Address of the participant claiming tokens.\",\"timestamp\":\"Block timestamp when the claim occurred.\"}}},\"kind\":\"dev\",\"methods\":{\"cancel()\":{\"details\":\"Cancels the presale and enables the refund process for participants. This function can be used in scenarios where the presale does not meet its goals or if the organizer decides to cancel the event for any reason. \",\"returns\":{\"_0\":\"A boolean value indicating whether the presale was successfully cancelled.\"}},\"claim()\":{\"details\":\"Allows participants to claim their purchased tokens after the presale is finalized. Participants call this function to receive the tokens they are entitled to. \",\"returns\":{\"_0\":\"The amount of tokens claimed by the caller.\"}},\"deposit()\":{\"details\":\"Allows for the deposit of presale tokens by the owner. This function is intended to be called by the presale contract owner to deposit the tokens that are to be sold during the presale. \",\"returns\":{\"_0\":\"The amount of tokens deposited for the presale.\"}},\"finalize()\":{\"details\":\"Finalizes the presale, allowing for the distribution of tokens to participants and the withdrawal of funds raised to the beneficiary. This function is typically called after the presale ends, assuming it meets any predefined criteria such as minimum funding goals. \",\"returns\":{\"_0\":\"A boolean value indicating whether the presale was successfully finalized.\"}},\"refund()\":{\"details\":\"Enables participants to request a refund of their contribution if the presale is cancelled or if they are otherwise eligible for a refund according to the presale's terms. \",\"returns\":{\"_0\":\"The amount of funds refunded to the caller.\"}}},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"notice\":\"This interface outlines the functions related to managing and interacting with presale contracts. It includes capabilities such as depositing funds, finalizing the presale, canceling the presale, claiming tokens, and refunding contributions. Implementing contracts should provide the logic for these operations in the context of a presale event.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"interfaces/IPresale.sol\":\"IPresale\"},\"evmVersion\":\"cancun\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":false,\"runs\":200},\"remappings\":[]},\"sources\":{\"interfaces/IPresale.sol\":{\"keccak256\":\"0xe7da09f138555161982095b2687a07e5d6d8232329efafc4c4d8dc2315f1483e\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://20121344a1ae44e81ab9a2669d9d1b80cbde089128c51dc48a9fd77c30d7fc21\",\"dweb:/ipfs/QmXs8tTWG1gEnWUjNksPxuzK2tTcYe2oqapjHu1hDL8Nxs\"]}},\"version\":1}",
+					"storageLayout": {
+						"storage": [],
+						"types": null
+					},
+					"userdoc": {
+						"kind": "user",
+						"methods": {},
+						"notice": "This interface outlines the functions related to managing and interacting with presale contracts. It includes capabilities such as depositing funds, finalizing the presale, canceling the presale, claiming tokens, and refunding contributions. Implementing contracts should provide the logic for these operations in the context of a presale event.",
+						"version": 1
+					}
+				}
+			}
+		},
+		"sources": {
+			"interfaces/IPresale.sol": {
+				"ast": {
+					"absolutePath": "interfaces/IPresale.sol",
+					"exportedSymbols": {
+						"IPresale": [
+							130
+						]
+					},
+					"id": 131,
+					"license": "MIT",
+					"nodeType": "SourceUnit",
+					"nodes": [
+						{
+							"id": 1,
+							"literals": [
+								"solidity",
+								"^",
+								"0.8",
+								".28"
+							],
+							"nodeType": "PragmaDirective",
+							"src": "32:24:0"
+						},
+						{
+							"abstract": false,
+							"baseContracts": [],
+							"canonicalName": "IPresale",
+							"contractDependencies": [],
+							"contractKind": "interface",
+							"documentation": {
+								"id": 2,
+								"nodeType": "StructuredDocumentation",
+								"src": "58:368:0",
+								"text": " This interface outlines the functions related to managing and interacting\n with presale contracts. It includes capabilities such as depositing funds,\n finalizing the presale, canceling the presale, claiming tokens, and refunding\n contributions. Implementing contracts should provide the logic for these\n operations in the context of a presale event."
+							},
+							"fullyImplemented": false,
+							"id": 130,
+							"linearizedBaseContracts": [
+								130
+							],
+							"name": "IPresale",
+							"nameLocation": "437:8:0",
+							"nodeType": "ContractDefinition",
+							"nodes": [
+								{
+									"documentation": {
+										"id": 3,
+										"nodeType": "StructuredDocumentation",
+										"src": "457:111:0",
+										"text": " @dev Emitted when an unauthorized address attempts an action requiring specific permissions."
+									},
+									"errorSelector": "82b42900",
+									"id": 5,
+									"name": "Unauthorized",
+									"nameLocation": "579:12:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 4,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "591:2:0"
+									},
+									"src": "573:21:0"
+								},
+								{
+									"documentation": {
+										"id": 6,
+										"nodeType": "StructuredDocumentation",
+										"src": "600:142:0",
+										"text": " @dev Emitted when an action is performed in an invalid state.\n @param currentState The current state of the contract."
+									},
+									"errorSelector": "d07e8976",
+									"id": 10,
+									"name": "InvalidState",
+									"nameLocation": "753:12:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 9,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 8,
+												"mutability": "mutable",
+												"name": "currentState",
+												"nameLocation": "772:12:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 10,
+												"src": "766:18:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint8",
+													"typeString": "uint8"
+												},
+												"typeName": {
+													"id": 7,
+													"name": "uint8",
+													"nodeType": "ElementaryTypeName",
+													"src": "766:5:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint8",
+														"typeString": "uint8"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "765:20:0"
+									},
+									"src": "747:39:0"
+								},
+								{
+									"documentation": {
+										"id": 11,
+										"nodeType": "StructuredDocumentation",
+										"src": "792:104:0",
+										"text": " @dev Emitted when attempting to finalize a presale that has not reached its soft cap."
+									},
+									"errorSelector": "2bdc91ad",
+									"id": 13,
+									"name": "SoftCapNotReached",
+									"nameLocation": "907:17:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 12,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "924:2:0"
+									},
+									"src": "901:26:0"
+								},
+								{
+									"documentation": {
+										"id": 14,
+										"nodeType": "StructuredDocumentation",
+										"src": "933:87:0",
+										"text": " @dev Emitted when a purchase attempt exceeds the presale's hard cap."
+									},
+									"errorSelector": "283452da",
+									"id": 16,
+									"name": "HardCapExceed",
+									"nameLocation": "1031:13:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 15,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "1044:2:0"
+									},
+									"src": "1025:22:0"
+								},
+								{
+									"documentation": {
+										"id": 17,
+										"nodeType": "StructuredDocumentation",
+										"src": "1053:88:0",
+										"text": " @dev Emitted when user with no contribution attempts to claim tokens."
+									},
+									"errorSelector": "6247a84e",
+									"id": 19,
+									"name": "NotClaimable",
+									"nameLocation": "1152:12:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 18,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "1164:2:0"
+									},
+									"src": "1146:21:0"
+								},
+								{
+									"documentation": {
+										"id": 20,
+										"nodeType": "StructuredDocumentation",
+										"src": "1173:101:0",
+										"text": " @dev Emitted when a purchase or refund attempt is made outside the presale period."
+									},
+									"errorSelector": "e3840bc4",
+									"id": 22,
+									"name": "NotInPurchasePeriod",
+									"nameLocation": "1285:19:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 21,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "1304:2:0"
+									},
+									"src": "1279:28:0"
+								},
+								{
+									"documentation": {
+										"id": 23,
+										"nodeType": "StructuredDocumentation",
+										"src": "1313:84:0",
+										"text": " @dev Emitted when a purchase amount is below the minimum allowed."
+									},
+									"errorSelector": "bd70f35d",
+									"id": 25,
+									"name": "PurchaseBelowMinimum",
+									"nameLocation": "1408:20:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 24,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "1428:2:0"
+									},
+									"src": "1402:29:0"
+								},
+								{
+									"documentation": {
+										"id": 26,
+										"nodeType": "StructuredDocumentation",
+										"src": "1437:108:0",
+										"text": " @dev Emitted when a participant's purchase would exceed the maximum allowed contribution."
+									},
+									"errorSelector": "5a99681c",
+									"id": 28,
+									"name": "PurchaseLimitExceed",
+									"nameLocation": "1556:19:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 27,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "1575:2:0"
+									},
+									"src": "1550:28:0"
+								},
+								{
+									"documentation": {
+										"id": 29,
+										"nodeType": "StructuredDocumentation",
+										"src": "1584:103:0",
+										"text": " @dev Emitted when a refund is requested under conditions that do not permit refunds."
+									},
+									"errorSelector": "3742d1f6",
+									"id": 31,
+									"name": "NotRefundable",
+									"nameLocation": "1698:13:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 30,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "1711:2:0"
+									},
+									"src": "1692:22:0"
+								},
+								{
+									"documentation": {
+										"id": 32,
+										"nodeType": "StructuredDocumentation",
+										"src": "1720:95:0",
+										"text": " @dev Emitted when the process of adding liquidity to a liquidity pool fails."
+									},
+									"errorSelector": "eda12fe6",
+									"id": 34,
+									"name": "LiquificationFailed",
+									"nameLocation": "1826:19:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 33,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "1845:2:0"
+									},
+									"src": "1820:28:0"
+								},
+								{
+									"documentation": {
+										"id": 35,
+										"nodeType": "StructuredDocumentation",
+										"src": "1854:104:0",
+										"text": " @dev Emitted when the initialization parameters provided to the contract are invalid."
+									},
+									"errorSelector": "0d0b9e06",
+									"id": 37,
+									"name": "InvalidInitializationParameters",
+									"nameLocation": "1969:31:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 36,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "2000:2:0"
+									},
+									"src": "1963:40:0"
+								},
+								{
+									"documentation": {
+										"id": 38,
+										"nodeType": "StructuredDocumentation",
+										"src": "2009:105:0",
+										"text": " @dev Emitted when the pool validation parameters provided to the contract are invalid."
+									},
+									"errorSelector": "a606ca78",
+									"id": 40,
+									"name": "InvalidCapValue",
+									"nameLocation": "2125:15:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 39,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "2140:2:0"
+									},
+									"src": "2119:24:0"
+								},
+								{
+									"documentation": {
+										"id": 41,
+										"nodeType": "StructuredDocumentation",
+										"src": "2149:105:0",
+										"text": " @dev Emitted when the pool validation parameters provided to the contract are invalid."
+									},
+									"errorSelector": "b5813461",
+									"id": 43,
+									"name": "InvalidLimitValue",
+									"nameLocation": "2265:17:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 42,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "2282:2:0"
+									},
+									"src": "2259:26:0"
+								},
+								{
+									"documentation": {
+										"id": 44,
+										"nodeType": "StructuredDocumentation",
+										"src": "2291:105:0",
+										"text": " @dev Emitted when the pool validation parameters provided to the contract are invalid."
+									},
+									"errorSelector": "83b087d3",
+									"id": 46,
+									"name": "InvalidLiquidityValue",
+									"nameLocation": "2407:21:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 45,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "2428:2:0"
+									},
+									"src": "2401:30:0"
+								},
+								{
+									"documentation": {
+										"id": 47,
+										"nodeType": "StructuredDocumentation",
+										"src": "2438:105:0",
+										"text": " @dev Emitted when the pool validation parameters provided to the contract are invalid."
+									},
+									"errorSelector": "eff2c182",
+									"id": 49,
+									"name": "InvalidTimestampValue",
+									"nameLocation": "2554:21:0",
+									"nodeType": "ErrorDefinition",
+									"parameters": {
+										"id": 48,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "2575:2:0"
+									},
+									"src": "2548:30:0"
+								},
+								{
+									"anonymous": false,
+									"documentation": {
+										"id": 50,
+										"nodeType": "StructuredDocumentation",
+										"src": "2584:382:0",
+										"text": " @dev Emitted when the presale contract owner deposits tokens for sale.\n This is usually done before the presale starts to ensure tokens are available for purchase.\n @param creator Address of the contract owner who performs the deposit.\n @param amount Amount of tokens deposited.\n @param timestamp Block timestamp when the deposit occurred."
+									},
+									"eventSelector": "90890809c654f11d6e72a28fa60149770a0d11ec6c92319d6ceb2bb0a4ea1a15",
+									"id": 58,
+									"name": "Deposit",
+									"nameLocation": "2977:7:0",
+									"nodeType": "EventDefinition",
+									"parameters": {
+										"id": 57,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 52,
+												"indexed": true,
+												"mutability": "mutable",
+												"name": "creator",
+												"nameLocation": "3001:7:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 58,
+												"src": "2985:23:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 51,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "2985:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 54,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "amount",
+												"nameLocation": "3018:6:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 58,
+												"src": "3010:14:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 53,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "3010:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 56,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "timestamp",
+												"nameLocation": "3034:9:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 58,
+												"src": "3026:17:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 55,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "3026:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "2984:60:0"
+									},
+									"src": "2971:74:0"
+								},
+								{
+									"anonymous": false,
+									"documentation": {
+										"id": 59,
+										"nodeType": "StructuredDocumentation",
+										"src": "3051:315:0",
+										"text": " @dev Emitted for each purchase made during the presale. Tracks the buyer, the amount of ETH contributed,\n and the amount of tokens purchased.\n @param beneficiary Address of the participant who made the purchase.\n @param contribution Amount of ETH contributed by the participant."
+									},
+									"eventSelector": "2499a5330ab0979cc612135e7883ebc3cd5c9f7a8508f042540c34723348f632",
+									"id": 65,
+									"name": "Purchase",
+									"nameLocation": "3377:8:0",
+									"nodeType": "EventDefinition",
+									"parameters": {
+										"id": 64,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 61,
+												"indexed": true,
+												"mutability": "mutable",
+												"name": "beneficiary",
+												"nameLocation": "3402:11:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 65,
+												"src": "3386:27:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 60,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "3386:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 63,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "contribution",
+												"nameLocation": "3423:12:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 65,
+												"src": "3415:20:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 62,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "3415:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "3385:51:0"
+									},
+									"src": "3371:66:0"
+								},
+								{
+									"anonymous": false,
+									"documentation": {
+										"id": 66,
+										"nodeType": "StructuredDocumentation",
+										"src": "3443:436:0",
+										"text": " @dev Emitted when the presale is successfully finalized. Finalization may involve distributing tokens,\n transferring raised funds to a designated wallet, and/or enabling token claim functionality.\n @param creator Address of the contract owner who finalized the presale.\n @param amount Total amount of ETH raised in the presale.\n @param timestamp Block timestamp when the finalization occurred."
+									},
+									"eventSelector": "616c9469db50815ae0f1d0a020d9fc9060da7c57f03559afb0d4ebdaa0a3a05e",
+									"id": 74,
+									"name": "Finalized",
+									"nameLocation": "3890:9:0",
+									"nodeType": "EventDefinition",
+									"parameters": {
+										"id": 73,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 68,
+												"indexed": true,
+												"mutability": "mutable",
+												"name": "creator",
+												"nameLocation": "3916:7:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 74,
+												"src": "3900:23:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 67,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "3900:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 70,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "amount",
+												"nameLocation": "3933:6:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 74,
+												"src": "3925:14:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 69,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "3925:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 72,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "timestamp",
+												"nameLocation": "3949:9:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 74,
+												"src": "3941:17:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 71,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "3941:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "3899:60:0"
+									},
+									"src": "3884:76:0"
+								},
+								{
+									"anonymous": false,
+									"documentation": {
+										"id": 75,
+										"nodeType": "StructuredDocumentation",
+										"src": "3966:365:0",
+										"text": " @dev Emitted when a participant successfully claims a refund. This is typically allowed when the presale\n is cancelled or does not meet its funding goals.\n @param beneficiary Address of the participant receiving the refund.\n @param amount Amount of wei refunded.\n @param timestamp Block timestamp when the refund occurred."
+									},
+									"eventSelector": "73f04af9dcc582a923ec15d3eea990fe34adabfff2879e28d44572e01a54abb6",
+									"id": 83,
+									"name": "Refund",
+									"nameLocation": "4342:6:0",
+									"nodeType": "EventDefinition",
+									"parameters": {
+										"id": 82,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 77,
+												"indexed": true,
+												"mutability": "mutable",
+												"name": "beneficiary",
+												"nameLocation": "4365:11:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 83,
+												"src": "4349:27:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 76,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "4349:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 79,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "amount",
+												"nameLocation": "4386:6:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 83,
+												"src": "4378:14:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 78,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "4378:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 81,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "timestamp",
+												"nameLocation": "4402:9:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 83,
+												"src": "4394:17:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 80,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "4394:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "4348:64:0"
+									},
+									"src": "4336:77:0"
+								},
+								{
+									"anonymous": false,
+									"documentation": {
+										"id": 84,
+										"nodeType": "StructuredDocumentation",
+										"src": "4419:293:0",
+										"text": " @dev Emitted when participants claim their purchased tokens after the presale is finalized. \n @param beneficiary Address of the participant claiming tokens.\n @param amount Amount of tokens claimed.\n @param timestamp Block timestamp when the claim occurred."
+									},
+									"eventSelector": "30c2341ba3f2142e78472f07dcf018a42044ae1c2c2e7ce867b327257f07ef2b",
+									"id": 92,
+									"name": "TokenClaim",
+									"nameLocation": "4723:10:0",
+									"nodeType": "EventDefinition",
+									"parameters": {
+										"id": 91,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 86,
+												"indexed": true,
+												"mutability": "mutable",
+												"name": "beneficiary",
+												"nameLocation": "4750:11:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 92,
+												"src": "4734:27:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 85,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "4734:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 88,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "amount",
+												"nameLocation": "4771:6:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 92,
+												"src": "4763:14:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 87,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "4763:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 90,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "timestamp",
+												"nameLocation": "4787:9:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 92,
+												"src": "4779:17:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 89,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "4779:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "4733:64:0"
+									},
+									"src": "4717:81:0"
+								},
+								{
+									"anonymous": false,
+									"documentation": {
+										"id": 93,
+										"nodeType": "StructuredDocumentation",
+										"src": "4804:322:0",
+										"text": " @dev Emitted when the presale is cancelled by the contract owner. A cancellation may allow participants\n to claim refunds for their contributions.\n @param creator Address of the contract owner who cancelled the presale.\n @param timestamp Block timestamp when the cancellation occurred."
+									},
+									"eventSelector": "27f83af92b39768b17fe0c8d6922452702717efb8626d97e7a754e0b27d4f6d2",
+									"id": 99,
+									"name": "Cancel",
+									"nameLocation": "5137:6:0",
+									"nodeType": "EventDefinition",
+									"parameters": {
+										"id": 98,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 95,
+												"indexed": true,
+												"mutability": "mutable",
+												"name": "creator",
+												"nameLocation": "5160:7:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 99,
+												"src": "5144:23:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_address",
+													"typeString": "address"
+												},
+												"typeName": {
+													"id": 94,
+													"name": "address",
+													"nodeType": "ElementaryTypeName",
+													"src": "5144:7:0",
+													"stateMutability": "nonpayable",
+													"typeDescriptions": {
+														"typeIdentifier": "t_address",
+														"typeString": "address"
+													}
+												},
+												"visibility": "internal"
+											},
+											{
+												"constant": false,
+												"id": 97,
+												"indexed": false,
+												"mutability": "mutable",
+												"name": "timestamp",
+												"nameLocation": "5177:9:0",
+												"nodeType": "VariableDeclaration",
+												"scope": 99,
+												"src": "5169:17:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 96,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "5169:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "5143:44:0"
+									},
+									"src": "5131:57:0"
+								},
+								{
+									"documentation": {
+										"id": 100,
+										"nodeType": "StructuredDocumentation",
+										"src": "5194:294:0",
+										"text": " @dev Allows for the deposit of presale tokens by the owner.\n This function is intended to be called by the presale contract owner to\n deposit the tokens that are to be sold during the presale.\n \n @return The amount of tokens deposited for the presale."
+									},
+									"functionSelector": "d0e30db0",
+									"id": 105,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "deposit",
+									"nameLocation": "5502:7:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 101,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "5509:2:0"
+									},
+									"returnParameters": {
+										"id": 104,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 103,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 105,
+												"src": "5530:7:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 102,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "5530:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "5529:9:0"
+									},
+									"scope": 130,
+									"src": "5493:46:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 106,
+										"nodeType": "StructuredDocumentation",
+										"src": "5545:414:0",
+										"text": " @dev Finalizes the presale, allowing for the distribution of tokens to\n participants and the withdrawal of funds raised to the beneficiary. This\n function is typically called after the presale ends, assuming it meets\n any predefined criteria such as minimum funding goals.\n \n @return A boolean value indicating whether the presale was successfully\n finalized."
+									},
+									"functionSelector": "4bb278f3",
+									"id": 111,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "finalize",
+									"nameLocation": "5973:8:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 107,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "5981:2:0"
+									},
+									"returnParameters": {
+										"id": 110,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 109,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 111,
+												"src": "6002:4:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bool",
+													"typeString": "bool"
+												},
+												"typeName": {
+													"id": 108,
+													"name": "bool",
+													"nodeType": "ElementaryTypeName",
+													"src": "6002:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bool",
+														"typeString": "bool"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "6001:6:0"
+									},
+									"scope": 130,
+									"src": "5964:44:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 112,
+										"nodeType": "StructuredDocumentation",
+										"src": "6014:356:0",
+										"text": " @dev Cancels the presale and enables the refund process for participants.\n This function can be used in scenarios where the presale does not meet\n its goals or if the organizer decides to cancel the event for any reason.\n \n @return A boolean value indicating whether the presale was successfully\n cancelled."
+									},
+									"functionSelector": "ea8a1af0",
+									"id": 117,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "cancel",
+									"nameLocation": "6384:6:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 113,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "6390:2:0"
+									},
+									"returnParameters": {
+										"id": 116,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 115,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 117,
+												"src": "6411:4:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_bool",
+													"typeString": "bool"
+												},
+												"typeName": {
+													"id": 114,
+													"name": "bool",
+													"nodeType": "ElementaryTypeName",
+													"src": "6411:4:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_bool",
+														"typeString": "bool"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "6410:6:0"
+									},
+									"scope": 130,
+									"src": "6375:42:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 118,
+										"nodeType": "StructuredDocumentation",
+										"src": "6423:264:0",
+										"text": " @dev Allows participants to claim their purchased tokens after the presale\n is finalized. Participants call this function to receive the tokens they\n are entitled to.\n \n @return The amount of tokens claimed by the caller."
+									},
+									"functionSelector": "4e71d92d",
+									"id": 123,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "claim",
+									"nameLocation": "6701:5:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 119,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "6706:2:0"
+									},
+									"returnParameters": {
+										"id": 122,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 121,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 123,
+												"src": "6727:7:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 120,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "6727:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "6726:9:0"
+									},
+									"scope": 130,
+									"src": "6692:44:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								},
+								{
+									"documentation": {
+										"id": 124,
+										"nodeType": "StructuredDocumentation",
+										"src": "6742:276:0",
+										"text": " @dev Enables participants to request a refund of their contribution if the\n presale is cancelled or if they are otherwise eligible for a refund\n according to the presale's terms.\n \n @return The amount of funds refunded to the caller."
+									},
+									"functionSelector": "590e1ae3",
+									"id": 129,
+									"implemented": false,
+									"kind": "function",
+									"modifiers": [],
+									"name": "refund",
+									"nameLocation": "7032:6:0",
+									"nodeType": "FunctionDefinition",
+									"parameters": {
+										"id": 125,
+										"nodeType": "ParameterList",
+										"parameters": [],
+										"src": "7038:2:0"
+									},
+									"returnParameters": {
+										"id": 128,
+										"nodeType": "ParameterList",
+										"parameters": [
+											{
+												"constant": false,
+												"id": 127,
+												"mutability": "mutable",
+												"name": "",
+												"nameLocation": "-1:-1:-1",
+												"nodeType": "VariableDeclaration",
+												"scope": 129,
+												"src": "7059:7:0",
+												"stateVariable": false,
+												"storageLocation": "default",
+												"typeDescriptions": {
+													"typeIdentifier": "t_uint256",
+													"typeString": "uint256"
+												},
+												"typeName": {
+													"id": 126,
+													"name": "uint256",
+													"nodeType": "ElementaryTypeName",
+													"src": "7059:7:0",
+													"typeDescriptions": {
+														"typeIdentifier": "t_uint256",
+														"typeString": "uint256"
+													}
+												},
+												"visibility": "internal"
+											}
+										],
+										"src": "7058:9:0"
+									},
+									"scope": 130,
+									"src": "7023:45:0",
+									"stateMutability": "nonpayable",
+									"virtual": false,
+									"visibility": "external"
+								}
+							],
+							"scope": 131,
+							"src": "427:6643:0",
+							"usedErrors": [
+								5,
+								10,
+								13,
+								16,
+								19,
+								22,
+								25,
+								28,
+								31,
+								34,
+								37,
+								40,
+								43,
+								46,
+								49
+							],
+							"usedEvents": [
+								58,
+								65,
+								74,
+								83,
+								92,
+								99
+							]
+						}
+					],
+					"src": "32:7038:0"
+				},
+				"id": 0
+			}
+		}
+	}
+}
