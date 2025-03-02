@@ -1,187 +1,240 @@
 // SPDX-License-Identifier: MIT
+pragma solidity >0.8.26 <=0.9.0;
 
-pragma solidity ^0.8.28;
-
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import { IUniswapV2Router02 } from "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import { IPresale } from "./interfaces/IPresale.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
+import {IUniswapV2Router02} from "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /**
- * @title Presale contract
- * @notice Create and manage a presale of an ERC20 token
+ * @title Advanced Presale Contract with IPFS Metadata
+ * @notice Manages token presales with decentralized metadata storage
+ * @dev Integrates IPFS for transparent documentation storage
  */
-contract Presale is IPresale, Ownable, ReentrancyGuard {
+contract Presale is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
     using Address for address payable;
 
-    /// Для масштаба при пропорциональном вычислении.
-    uint256 constant SCALE = 10**18;
+    /// @notice Scaling factor for precision calculations
+    uint256 public constant SCALE = 10**18;
+    
+    /// @notice Total number of vesting stages
+    uint256 public constant VESTING_STAGES = 10;
+    
+    /// @notice Total vesting duration in seconds (3 years)
+    uint256 public constant VESTING_DURATION = 3 * 365 days;
+    
+    /// @notice Duration of each vesting stage in seconds
+    uint256 public constant STAGE_DURATION = VESTING_DURATION / VESTING_STAGES;
 
-    /** 
-     * @notice Параметры пресейла
-     * @param tokenDeposit Всего токенов, вносимых в контракт (и на продажу, и на ликвидность).
-     * @param hardCap Максимальное количество BNB (wei), которое хотим собрать.
-     * @param softCap Минимальное количество BNB для успеха.
-     * @param max Максимальный взнос от одного адреса.
-     * @param min Минимальный взнос от одного адреса.
-     * @param start Timestamp начала пресейла.
-     * @param end Timestamp конца пресейла.
-     * @param liquidityBps Процент (в basis points) от собранных средств, который пойдёт в ликвидность (например, 50% = 5000).
-    */ 
+    /// @notice Slippage tolerance for liquidity addition (basis points)
+    uint256 public slippageBps = 500;
+
+    /// @notice IPFS CIDv1 for presale metadata
+    string public ipfsCID;
+
+    /// @notice Timestamp of metadata publication
+    uint256 public ipfsPublishDate;
+
+    /**
+     * @notice Presale configuration parameters
+     * @param tokenDeposit Total tokens deposited (sale + liquidity)
+     * @param hardCap Maximum BNB to raise (in wei)
+     * @param softCap Minimum BNB for success (in wei)
+     * @param max Maximum contribution per address
+     * @param min Minimum contribution per address
+     * @param start Presale start timestamp
+     * @param end Presale end timestamp
+     * @param liquidityBps Percentage of funds for liquidity (basis points)
+     */
     struct PresaleOptions {
         uint256 tokenDeposit;
         uint256 hardCap;
         uint256 softCap;
         uint256 max;
         uint256 min;
-        uint112 start;
-        uint112 end;
-        uint32 liquidityBps; 
+        uint64 start;
+        uint64 end;
+        uint32 liquidityBps;
     }
 
-    /** 
-     * @notice Структура хранения состояния пресейла
-     * @param token Адрес токена (ERC20).
-     * @param uniswapV2Router02 Адрес роутера (PancakeSwap / Uniswap V2).
-     * @param tokenBalance Текущее количество токенов на контракте.
-     * @param tokensClaimable Сколько токенов предназначено для участников пресейла.
-     * @param tokensLiquidity Сколько токенов пойдёт в пул ликвидности.
-     * @param weiRaised Сколько всего BNB собрано.
-     * @param weth Адрес WETH / WBNB (обёрнутый BNB).
-     * @param state Текущее состояние (1: Инициализирован, 2: Активен, 3: Отменён, 4: Завершён).
-     * @param options Параметры пресейла PresaleOptions.
-    */
+    /**
+     * @notice Vesting schedule for participant
+     * @param totalAllocated Total tokens allocated (adjusted for decimals)
+     * @param claimed Tokens already claimed
+     */
+    struct VestingSchedule {
+        uint256 totalAllocated;
+        uint256 claimed;
+    }
+
+    /**
+     * @notice Presale state container
+     * @param token ERC20 token contract
+     * @param pancakeRouter PancakeSwap router interface
+     * @param tokenBalance Current token balance in contract
+     * @param tokensClaimable Tokens allocated for presale participants
+     * @param tokensLiquidity Tokens reserved for liquidity pool
+     * @param weiRaised Total BNB raised (in wei)
+     * @param wbnb WBNB contract address
+     * @param state Current presale state
+     * @param options Presale configuration
+     */
     struct Pool {
         IERC20 token;
-        IUniswapV2Router02 uniswapV2Router02;
+        IUniswapV2Router02 pancakeRouter;
         uint256 tokenBalance;
         uint256 tokensClaimable;
         uint256 tokensLiquidity;
         uint256 weiRaised;
-        address weth;
+        address wbnb;
         uint8 state;
         PresaleOptions options;
     }
 
-    /// Учет вкладов (адрес -> внесённые BNB)
-    mapping(address => uint256) public contributions;
-    
-    /// Храним все данные в одной структуре
+    /// @notice Presale state constants
+    uint8 private constant STATE_INITIALIZED = 1;
+    uint8 private constant STATE_ACTIVE = 2;
+    uint8 private constant STATE_CANCELED = 3;
+    uint8 private constant STATE_FINALIZED = 4;
+
+    /// @notice Main presale storage
     Pool public pool;
 
-    /// 2. Механика whitelist (для снижения рисков фронтраннинга)
-    bool public isWhitelistEnabled = false;
-    mapping(address => bool) public whitelist;
+    /// @notice Vesting start timestamp
+    uint256 public vestingStartTime;
 
-    /// Модификатор, разрешающий рефанд при состоянии Canceled или при недостигнутом softCap после окончания
+    /// @notice Whitelist status mapping
+    mapping(address => bool) public whitelist;
+    
+    /// @notice Whitelist enforcement flag
+    bool public isWhitelistEnabled = false;
+
+    /// @notice Participant contributions tracking
+    mapping(address => uint256) public contributions;
+
+    /// @notice Vesting schedules mapping
+    mapping(address => VestingSchedule) public vestingSchedules;
+
+    /// @notice Token decimals storage
+    uint8 private immutable tokenDecimals;
+
+    // Events
+    event Deposit(address indexed creator, uint256 amount, uint256 timestamp);
+    event Purchase(address indexed beneficiary, uint256 contribution);
+    event Finalized(address indexed creator, uint256 amount, uint256 timestamp);
+    event Refund(address indexed beneficiary, uint256 amount, uint256 timestamp);
+    event TokenClaim(address indexed beneficiary, uint256 amount, uint256 timestamp);
+    event Cancel(address indexed creator, uint256 timestamp);
+    event WhitelistUpdated(address[] accounts, bool status);
+    event SlippageUpdated(uint256 newSlippage);
+    event IPFSParamsUpdated(string indexed cid, uint256 timestamp);
+
+    // Errors
+    error InvalidState(uint8 currentState);
+    error SoftCapNotReached();
+    error HardCapExceed();
+    error NotClaimable();
+    error NotInPurchasePeriod();
+    error PurchaseBelowMinimum();
+    error PurchaseLimitExceed();
+    error NotRefundable();
+    error LiquificationFailed();
+    error InvalidCapValue();
+    error InvalidLimitValue();
+    error InvalidTimestampValue();
+    error InvalidLiquidityValue();
+    error FrontrunProtection();
+    error InvalidInitializationParams();
+
+    /**
+     * @dev Modifier for refundable states
+     */
     modifier onlyRefundable() {
         bool canRefund = (
-            pool.state == 3 ||
+            pool.state == STATE_CANCELED ||
             (block.timestamp > pool.options.end && pool.weiRaised < pool.options.softCap)
         );
         if (!canRefund) revert NotRefundable();
         _;
     }
 
-    /** 
-     * @param _weth Адрес WBNB в сети BSC (или WETH, если это другая EVM-сеть).
-     * @param _token Адрес токена, который продаём.
-     * @param _uniswapV2Router02 Адрес роутера (PancakeSwap/Uniswap).
-     * @param _options Параметры пресейла (PresaleOptions).
-    */
+    /**
+     * @notice Initializes presale contract with IPFS metadata
+     * @param _wbnb WBNB contract address
+     * @param _token ERC20 token address
+     * @param _pancakeRouter PancakeSwap router address
+     * @param _options Presale configuration parameters
+     * @param _initialCID Initial IPFS CID for metadata (empty for none)
+     */
     constructor(
-        address _weth,
+        address _wbnb,
         address _token,
-        address _uniswapV2Router02,
-        PresaleOptions memory _options
-    )
-        Ownable(msg.sender)
-    {
-        _prevalidatePool(_options);
+        address _pancakeRouter,
+        PresaleOptions memory _options,
+        string memory _initialCID
+    ) Ownable(msg.sender) {
+        _validatePoolConfig(_options);
+        
+        // Frontrun protection checks
+        if (_options.start < block.timestamp + 1 hours) revert FrontrunProtection();
+        if (_options.end - _options.start > 30 days) revert FrontrunProtection();
 
-        pool.uniswapV2Router02 = IUniswapV2Router02(_uniswapV2Router02);
+        pool.pancakeRouter = IUniswapV2Router02(_pancakeRouter);
         pool.token = IERC20(_token);
-        pool.state = 1; // Initialized
-        pool.weth = _weth;
+        pool.state = STATE_INITIALIZED;
+        pool.wbnb = _wbnb;
         pool.options = _options;
+
+        // Initialize IPFS params if provided
+        if(bytes(_initialCID).length > 0) {
+            ipfsCID = _initialCID;
+            ipfsPublishDate = block.timestamp;
+        }
+
+        // Initialize token decimals
+        tokenDecimals = _tryGetDecimals(_token);
     }
 
-    /// Функция для приёма BNB напрямую. Вызывает _purchase().
+    /// @notice Accepts BNB contributions
     receive() external payable {
-        _purchase(msg.sender, msg.value);
+        _processPurchase(msg.sender, msg.value);
     }
 
-    // ========================================================
-    //               ВНЕСЕНИЕ ТОКЕНОВ / СТАРТ ПРОДАЖИ
-    // ========================================================
-
-    /** 
-     * @notice Владелец вносит нужное количество токенов для пресейла и ликвидности.
-     *         До вызова этой функции пресейл недоступен участникам.
-     * @return Количество внесённых токенов.
-    */
-    function deposit() external onlyOwner returns (uint256) {
-        // Проверяем, что пресейл ещё в начальном состоянии
-        if (pool.state != 1) revert InvalidState(pool.state);
-
-        // Переводим в состояние "Active"
-        pool.state = 2;
-        
-        // Рассчитываем, сколько токенов пойдёт на ликвидность и на пресейл
-        pool.tokenBalance += pool.options.tokenDeposit;
-        pool.tokensLiquidity = _tokensForLiquidity();
-        pool.tokensClaimable = _tokensForPresale();
-
-        // Безопасно переводим токены с адреса владельца на контракт
-        pool.token.safeTransferFrom(msg.sender, address(this), pool.options.tokenDeposit);
-
-        emit Deposit(msg.sender, pool.options.tokenDeposit, block.timestamp);
-        return pool.options.tokenDeposit;
-    }
-
-    // ========================================================
-    //               ПОКУПКА, РЕФАНД, КЛЕЙМ
-    // ========================================================
-
-    /** 
-     * @dev Главная внутренняя функция покупки.
-     * @param beneficiary Адрес покупателя.
-     * @param amount Сколько BNB он отправил.
-    */
-    function _purchase(address beneficiary, uint256 amount) private nonReentrant {
-        _prevalidatePurchase(beneficiary, amount);
-
-        pool.weiRaised += amount;
-        contributions[beneficiary] += amount;
-        
-        emit Purchase(beneficiary, amount);
-    }
+    // ========================== USER FUNCTIONS ==========================
 
     /**
-     * @notice Позволяет покупателям забрать свои токены после успешного завершения пресейла.
+     * @notice Claims vested tokens according to schedule
+     * @return amount Amount of tokens claimed
      */
     function claim() external nonReentrant returns (uint256) {
-        // Проверяем состояние: только после finalize
-        if (pool.state != 4) revert InvalidState(pool.state);
-        // Проверяем, что есть вклад
-        if (contributions[msg.sender] == 0) revert NotClaimable();
+        require(pool.state == STATE_FINALIZED, "Presale not finalized");
+        require(vestingStartTime != 0, "Vesting not started");
 
-        uint256 amount = userTokens(msg.sender);
-        contributions[msg.sender] = 0; // обнуляем вклад для исключения повторных вызовов
-        pool.tokenBalance -= amount;
-        
-        pool.token.safeTransfer(msg.sender, amount);
+        VestingSchedule storage schedule = vestingSchedules[msg.sender];
+        if (schedule.totalAllocated == 0) {
+            uint256 totalTokens = calculateTokens(msg.sender);
+            require(totalTokens > 0, "No tokens allocated");
+            schedule.totalAllocated = totalTokens * 10 ** tokenDecimals;
+        }
 
-        emit TokenClaim(msg.sender, amount, block.timestamp);
-        return amount;
+        uint256 claimable = _calculateClaimable(schedule);
+        require(claimable > 0, "Nothing to claim");
+
+        schedule.claimed += claimable;
+        pool.tokenBalance -= claimable;
+        SafeERC20.safeTransfer(pool.token, msg.sender, claimable);
+
+        emit TokenClaim(msg.sender, claimable, block.timestamp);
+        return claimable;
     }
 
     /**
-     * @notice Возврат средств участникам, если пресейл отменён или не собрал softCap.
+     * @notice Processes refund for failed presale
+     * @return amount Refund amount in BNB
      */
     function refund() external onlyRefundable nonReentrant returns (uint256) {
         if (contributions[msg.sender] == 0) revert NotRefundable();
@@ -189,41 +242,68 @@ contract Presale is IPresale, Ownable, ReentrancyGuard {
         uint256 amount = contributions[msg.sender];
         contributions[msg.sender] = 0;
 
-        // Возвращаем BNB
         payable(msg.sender).sendValue(amount);
-
         emit Refund(msg.sender, amount, block.timestamp);
         return amount;
     }
 
-    // ========================================================
-    //               УПРАВЛЕНИЕ ПРЕСЕЙЛОМ
-    // ========================================================
+    // ========================== OWNER FUNCTIONS ==========================
 
     /**
-     * @notice Завершает пресейл, если он успешен (достигнут softCap).
-     *         Добавляет ликвидность, переводит остатки владельцу, открывает клейм для участников.
+     * @notice Updates IPFS metadata reference
+     * @dev Emits IPFSParamsUpdated event
+     * @param _cid New IPFS CIDv1 for metadata
+     */
+    function setIPFSParams(string calldata _cid) external onlyOwner {
+        require(bytes(_cid).length == 46, "Invalid CID format");
+        ipfsCID = _cid;
+        ipfsPublishDate = block.timestamp;
+        emit IPFSParamsUpdated(_cid, block.timestamp);
+    }
+
+    /**
+     * @notice Deposits tokens and activates presale
+     * @return depositedAmount Amount of tokens deposited
+     */
+    function deposit() external onlyOwner returns (uint256) {
+        if (pool.state != STATE_INITIALIZED) revert InvalidState(pool.state);
+        
+        pool.state = STATE_ACTIVE;
+        pool.tokensLiquidity = _calculateLiquidityTokens();
+        pool.tokensClaimable = pool.options.tokenDeposit - pool.tokensLiquidity;
+
+        if (pool.tokensClaimable == 0 || pool.tokensLiquidity == 0) {
+            revert InvalidLiquidityValue();
+        }
+
+        pool.tokenBalance += pool.options.tokenDeposit;
+        pool.token.safeTransferFrom(msg.sender, address(this), pool.options.tokenDeposit);
+        
+        emit Deposit(msg.sender, pool.options.tokenDeposit, block.timestamp);
+        return pool.options.tokenDeposit;
+    }
+
+    /**
+     * @notice Finalizes presale and initiates vesting period
+     * @return success True if finalization succeeded
      */
     function finalize() external onlyOwner nonReentrant returns (bool) {
-        if (pool.state != 2) revert InvalidState(pool.state);
-
-        // Если ещё не достигли softCap, но время не вышло, лучше подождать окончания
+        if (pool.state != STATE_ACTIVE) revert InvalidState(pool.state);
         if (pool.weiRaised < pool.options.softCap && block.timestamp < pool.options.end) {
             revert SoftCapNotReached();
         }
 
-        // Переводим состояние в "Finalized"
-        pool.state = 4;
+        pool.state = STATE_FINALIZED;
+        vestingStartTime = block.timestamp;
 
-        // Добавляем ликвидность: часть BNB + часть токенов
-        uint256 liquidityWei = _weiForLiquidity();
-        _liquify(liquidityWei, pool.tokensLiquidity);
-        pool.tokenBalance -= pool.tokensLiquidity;
-
-        // Остаток собранных средств отправляем владельцу
-        uint256 withdrawable = pool.weiRaised - liquidityWei;
-        if (withdrawable > 0) {
-            payable(msg.sender).sendValue(withdrawable);
+        // Add liquidity with slippage protection
+        uint256 liquidityWei = (pool.weiRaised * pool.options.liquidityBps) / 10000;
+        _addLiquidity(liquidityWei, pool.tokensLiquidity);
+        
+        // Transfer remaining BNB to owner
+        uint256 remainingWei = pool.weiRaised - liquidityWei;
+        if (remainingWei > 0) {
+            payable(owner()).sendValue(remainingWei);
         }
 
         emit Finalized(msg.sender, pool.weiRaised, block.timestamp);
@@ -231,143 +311,165 @@ contract Presale is IPresale, Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Владелец может отменить пресейл (если он ещё не завершён).
-     *         Тогда участники смогут вызвать refund() и вернуть BNB.
+     * @notice Cancels presale and enables refunds
+     * @return success True if cancellation succeeded
      */
-    function cancel() external onlyOwner returns(bool) {
-        if (pool.state > 3) revert InvalidState(pool.state);
+    function cancel() external onlyOwner returns (bool) {
+        if (pool.state >= STATE_CANCELED) revert InvalidState(pool.state);
 
-        pool.state = 3; // Canceled
-
-        // Возвращаем владельцу невостребованные токены
+        pool.state = STATE_CANCELED;
         if (pool.tokenBalance > 0) {
             uint256 amount = pool.tokenBalance;
             pool.tokenBalance = 0;
-            pool.token.safeTransfer(msg.sender, amount);
+            pool.token.safeTransfer(owner(), amount);
         }
 
         emit Cancel(msg.sender, block.timestamp);
         return true;
     }
 
-    // ========================================================
-    //               WHITELIST (доп. проверка)
-    // ========================================================
+    // ========================== VIEW FUNCTIONS ==========================
 
     /**
-     * @notice Включает или отключает механизм whitelist.
+     * @notice Generates IPFS gateway URL for metadata
+     * @return url Full IPFS gateway URL
      */
-    function setWhitelistEnabled(bool _enabled) external onlyOwner {
-        isWhitelistEnabled = _enabled;
+    function getIPFSMetadataURL() external view returns (string memory) {
+        return string(abi.encodePacked("ipfs://", ipfsCID));
     }
 
     /**
-     * @notice Добавляет адреса в whitelist.
+     * @notice Calculates claimable tokens for address
+     * @param contributor Participant's address
+     * @return amount Currently claimable tokens
      */
-    function addToWhitelist(address[] calldata accounts) external onlyOwner {
-        for (uint256 i = 0; i < accounts.length; i++) {
-            whitelist[accounts[i]] = true;
+    function availableToClaim(address contributor) public view returns (uint256) {
+        VestingSchedule storage schedule = vestingSchedules[contributor];
+        if (schedule.totalAllocated == 0) return 0;
+        return _calculateClaimable(schedule);
+    }
+
+    /**
+     * @notice Calculates total token allocation for address
+     * @param contributor Participant's address
+     * @return amount Total allocated tokens (not adjusted for decimals)
+     */
+    function calculateTokens(address contributor) public view returns (uint256) {
+        if (pool.weiRaised == 0) return 0;
+        return (contributions[contributor] * pool.tokensClaimable) / pool.weiRaised;
+    }
+
+    // ========================== INTERNAL FUNCTIONS ==========================
+
+    /**
+     * @dev Processes purchase with validation
+     * @param buyer Contributor address
+     * @param amount BNB contribution amount
+     */
+    function _processPurchase(address buyer, uint256 amount) internal nonReentrant {
+        _validatePurchase(buyer, amount);
+        pool.weiRaised += amount;
+        contributions[buyer] += amount;
+        emit Purchase(buyer, amount);
+    }
+
+    /**
+     * @dev Adds liquidity to DEX with slippage protection
+     * @param _bnbAmount BNB amount for liquidity
+     * @param _tokenAmount Token amount for liquidity
+     */
+    function _addLiquidity(uint256 _bnbAmount, uint256 _tokenAmount) private {
+        // Calculate minimum amounts with slippage tolerance
+        uint256 minToken = (_tokenAmount * (10000 - slippageBps)) / 10000;
+        uint256 minBNB = (_bnbAmount * (10000 - slippageBps)) / 10000;
+
+        (uint amountToken, uint amountBNB, ) = pool.pancakeRouter.addLiquidityETH{value: _bnbAmount}(
+            address(pool.token),
+            _tokenAmount,
+            minToken,
+            minBNB,
+            owner(),
+            block.timestamp + 600
+        );
+        
+        // Validate against minimums
+        if (amountToken < minToken || amountBNB < minBNB) {
+            revert LiquificationFailed();
+        }
+
+        // Return excess tokens
+        if (_tokenAmount > amountToken) {
+            uint256 excess = _tokenAmount - amountToken;
+            pool.token.safeTransfer(owner(), excess);
+            pool.tokenBalance -= excess;
         }
     }
 
     /**
-     * @notice Удаляет адреса из whitelist.
+     * @dev Calculates claimable tokens for vesting schedule
+     * @param schedule Vesting schedule reference
+     * @return claimable Currently claimable tokens
      */
-    function removeFromWhitelist(address[] calldata accounts) external onlyOwner {
-        for (uint256 i = 0; i < accounts.length; i++) {
-            whitelist[accounts[i]] = false;
+    function _calculateClaimable(VestingSchedule storage schedule) internal view returns (uint256) {
+        if (vestingStartTime == 0) return 0;
+        
+        uint256 elapsed = block.timestamp - vestingStartTime;
+        uint256 completedStages = elapsed / STAGE_DURATION;
+        
+        completedStages = completedStages > VESTING_STAGES 
+            ? VESTING_STAGES 
+            : completedStages;
+
+        uint256 unlocked = (schedule.totalAllocated * completedStages) / VESTING_STAGES;
+        return unlocked - schedule.claimed;
+    }
+
+    /**
+     * @dev Validates presale configuration
+     * @param opts Presale options
+     */
+    function _validatePoolConfig(PresaleOptions memory opts) internal pure {
+        if (opts.liquidityBps > 9000) revert InvalidLiquidityValue();
+        if (opts.softCap > opts.hardCap) revert InvalidCapValue();
+        if (opts.min > opts.max) revert InvalidLimitValue();
+        if (opts.start >= opts.end) revert InvalidTimestampValue();
+        if (opts.tokenDeposit == 0) revert InvalidInitializationParams();
+    }
+
+    /**
+     * @dev Safely retrieves token decimals
+     * @param tokenAddress ERC20 token address
+     * @return decimals Token decimals
+     */
+    function _tryGetDecimals(address tokenAddress) private view returns (uint8) {
+        try IERC20Metadata(tokenAddress).decimals() returns (uint8 decimals) {
+            return decimals;
+        } catch {
+            return 18;
         }
     }
 
-    // ========================================================
-    //               ВНУТРЕННЯЯ ЛОГИКА И ПРОВЕРКИ
-    // ========================================================
+    /**
+     * @dev Calculates tokens allocated for liquidity
+     * @return liquidityTokens Token amount for liquidity pool
+     */
+    function _calculateLiquidityTokens() internal view returns (uint256) {
+        return (pool.options.tokenDeposit * pool.options.liquidityBps) / 10000;
+    }
 
     /**
-     * @dev Проверка валидности покупки.
+     * @dev Validates purchase parameters
+     * @param buyer Contributor address
+     * @param amount BNB contribution amount
      */
-    function _prevalidatePurchase(address _beneficiary, uint256 _amount) internal view {
-        if (pool.state != 2) revert InvalidState(pool.state);
-        // Проверяем период
+    function _validatePurchase(address buyer, uint256 amount) internal view {
+        if (pool.state != STATE_ACTIVE) revert InvalidState(pool.state);
         if (block.timestamp < pool.options.start || block.timestamp > pool.options.end) {
             revert NotInPurchasePeriod();
         }
-        // Проверяем hardCap
-        if (pool.weiRaised + _amount > pool.options.hardCap) {
-            revert HardCapExceed();
-        }
-        // Проверяем min
-        if (_amount < pool.options.min) {
-            revert PurchaseBelowMinimum();
-        }
-        // Проверяем max
-        if (_amount + contributions[_beneficiary] > pool.options.max) {
-            revert PurchaseLimitExceed();
-        }
-        // Если включен whitelist — проверяем
-        if (isWhitelistEnabled && !whitelist[_beneficiary]) {
-            revert("NotWhitelisted");
-        }
-    }
-
-    /**
-     * @dev Предварительная проверка параметров пресейла (можно доработать логику под нужды проекта).
-     */
-    function _prevalidatePool(PresaleOptions memory _options) internal pure {
-        if (_options.softCap > _options.hardCap) revert InvalidCapValue();
-        if (_options.min > _options.max) revert InvalidLimitValue();
-        if (_options.start >= _options.end) revert InvalidTimestampValue();
-    }
-
-
-    /**
-     * @dev Считаем, сколько токенов причитается конкретному участнику (пропорционально вкладу).
-     */
-    function userTokens(address contributor) public view returns (uint256) {
-        // Пропорция: (вклад / общий сбор) * pool.tokensClaimable
-        if (pool.weiRaised == 0) return 0;
-        return ((contributions[contributor] * SCALE) / pool.weiRaised)
-            * pool.tokensClaimable
-            / SCALE;
-    }
-
-    /**
-     * @dev Сколько токенов идёт на ликвидность
-     */
-    function _tokensForLiquidity() internal view returns (uint256) {
-        return pool.options.tokenDeposit * pool.options.liquidityBps / 10000;
-    }
-
-    /**
-     * @dev Сколько токенов идёт на пресейл (для участников)
-     */
-    function _tokensForPresale() internal view returns (uint256) {
-        return pool.options.tokenDeposit - _tokensForLiquidity();
-    }
-
-    /**
-     * @dev Сколько BNB пойдёт в пул ликвидности
-     */
-    function _weiForLiquidity() internal view returns (uint256) {
-        return pool.weiRaised * pool.options.liquidityBps / 10000;
-    }
-
-    /**
-     * @dev Добавление ликвидности через роутер (PancakeSwap / Uniswap V2).
-     */
-    function _liquify(uint256 _weiAmount, uint256 _tokenAmount) private {
-        (uint amountToken, uint amountETH, ) =
-            pool.uniswapV2Router02.addLiquidityETH{value : _weiAmount}(
-                address(pool.token),
-                _tokenAmount,
-                _tokenAmount,   // минимум токенов (0% проскальзывания в примере)
-                _weiAmount,     // минимум BNB
-                owner(),
-                block.timestamp + 600
-            );
-        
-        if (amountToken != _tokenAmount && amountETH != _weiAmount) {
-            revert LiquificationFailed();
-        }
+        if (amount < pool.options.min) revert PurchaseBelowMinimum();
+        if (contributions[buyer] + amount > pool.options.max) revert PurchaseLimitExceed();
+        if (pool.weiRaised + amount > pool.options.hardCap) revert HardCapExceed();
+        if (isWhitelistEnabled && !whitelist[buyer]) revert("Not whitelisted");
     }
 }
